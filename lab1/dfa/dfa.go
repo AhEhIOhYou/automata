@@ -207,3 +207,25 @@ func (d *DFA) CheckChain(chain []*Letter) bool {
 	}
 	return d.IsEndState()
 }
+
+// Accepts проверяет строку на принадлежность языку ДКА
+// Возвращает true, если строка принадлежит языку ДКА, или false, если нет
+func (d *DFA) Accepts(s string) bool {
+	d.ResetCurrentState()
+	for _, r := range s {
+		var l *Letter
+		for letter := range d.letters {
+			if letter.name == string(r) {
+				l = letter
+				break
+			}
+		}
+		if l == nil {
+			return false
+		}
+		if d.Transition(l) == nil {
+			return false
+		}
+	}
+	return d.IsEndState()
+}

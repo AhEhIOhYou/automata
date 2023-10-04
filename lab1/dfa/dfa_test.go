@@ -46,4 +46,6 @@ func TestDfa(t *testing.T) {
 	states := []*dfa.Letter{b, d, f}
 
 	fmt.Println(automata.CheckChain(states))
+
+	fmt.Println(automata.Accepts("a135"))
 }

@@ -1,5 +1,7 @@
 package dfa
 
+import "fmt"
+
 // State представляет состояние ДКА
 type State struct {
 	name string
@@ -45,13 +47,26 @@ type DFA struct {
 	current *State                        // текущее состояние ДКА
 }
 
-// NewDFA создает новый ДКА без состояний и переходов
-func NewDFA() *DFA {
-	return &DFA{
+// NewDFA создает новый ДКА
+func NewDFA(statesCount int) *DFA {
+	dfa := DFA{
 		states:  make(map[*State]bool),
 		letters: make(map[*Letter]bool),
 		trans:   make(map[*State]map[*Letter]*State),
 	}
+
+	if statesCount < 0 {
+		return nil
+	} else if statesCount == 0 {
+		return &dfa
+	}
+
+	for i := 0; i < statesCount; i++ {
+		name := fmt.Sprintf("s%d", i)
+		dfa.AddState(name, false)
+	}
+
+	return &dfa
 }
 
 // AddState добавляет новое состояние в ДКА с заданным именем и флагом заключительности
@@ -120,7 +135,10 @@ func (d *DFA) RemoveLetter(letter *Letter) bool {
 
 // SetTransition устанавливает переход из заданного исходного состояния в заданное конечное состояние по заданному символу
 // Возвращает true, если переход установлен успешно, или false, если какой-то из параметров не принадлежит ДКА
-func (d *DFA) SetTransition(from, to *State, by *Letter) bool {
+func (d *DFA) SetTransition(fromName, toName, letterBy string) bool {
+	by := d.FindLetterByName(letterBy)
+	from := d.FindStateByName(fromName)
+	to := d.FindStateByName(toName)
 	if _, ok := d.states[from]; !ok {
 		return false // исходное состояние не принадлежит ДКА
 	}
@@ -132,6 +150,27 @@ func (d *DFA) SetTransition(from, to *State, by *Letter) bool {
 	}
 	d.trans[from][by] = to // установить переход
 	return true
+}
+
+// FindLetterByName возвращает ссылку на букву алфавита по её имени
+func (d *DFA) FindLetterByName(name string) *Letter {
+	for letter := range d.letters {
+		if letter.name == name {
+			return letter
+		}
+	}
+	return nil
+}
+
+// FindStateByName возвращает ссылку на состояние по имени.
+// Возвращает nil если состояние не принадлежит ДКА и ссылку на состояние если принадлежит
+func (d *DFA) FindStateByName(name string) *State {
+	for state := range d.states {
+		if state.name == name {
+			return state
+		}
+	}
+	return nil
 }
 
 // RemoveTransition удаляет переход из заданного исходного состояния по заданному символу
@@ -152,12 +191,23 @@ func (d *DFA) RemoveTransition(from *State, by *Letter) bool {
 
 // SetStartState устанавливает начальное состояние ДКА
 // Возвращает true, если состояние установлено успешно, или false, если заданное состояние не принадлежит ДКА
-func (d *DFA) SetStartState(state *State) bool {
-	if _, ok := d.states[state]; !ok {
-		return false // состояние не принадлежит ДКА
+func (d *DFA) SetStartState(name string) bool {
+	state := d.FindStateByName(name)
+	if state == nil {
+		return false
 	}
 	d.start = state   // установить начальное состояние
 	d.current = state // установить текущее состояние равным начальному
+	return true
+}
+
+// SetEndState устанавливает состояние как конечное
+func (d *DFA) SetEndState(name string) bool {
+	s := d.FindStateByName(name)
+	if s == nil {
+		return false
+	}
+	s.term = true
 	return true
 }
 
@@ -214,12 +264,7 @@ func (d *DFA) Accepts(s string) bool {
 	d.ResetCurrentState()
 	for _, r := range s {
 		var l *Letter
-		for letter := range d.letters {
-			if letter.name == string(r) {
-				l = letter
-				break
-			}
-		}
+		l = d.FindLetterByName(string(r))
 		if l == nil {
 			return false
 		}

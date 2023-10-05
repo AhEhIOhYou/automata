@@ -1,3 +1,3 @@
-module github.com/AhEhIOhYou/automata/lab1/dfa
+module dfa
 
 go 1.21.1

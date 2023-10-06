@@ -1,5 +1,7 @@
 package nfa
 
+import "fmt"
+
 // State представляет состояние НКА
 type State struct {
 	name string
@@ -45,13 +47,26 @@ type NFA struct {
 	current []*State                        // текущее множество состояний НКА
 }
 
-// NewNFA создает новый НКА без состояний и переходов
-func NewNFA() *NFA {
-	return &NFA{
+// NewNFA создает новый НКА
+func NewNFA(statesCount int) *NFA {
+	nfa := NFA{
 		states:  make(map[*State]bool),
 		letters: make(map[*Letter]bool),
 		trans:   make(map[*State]map[*Letter][]*State),
 	}
+
+	if statesCount < 0 {
+		return nil
+	} else if statesCount == 0 {
+		return &nfa
+	}
+
+	for i := 0; i < statesCount; i++ {
+		name := fmt.Sprintf("s%d", i)
+		nfa.AddState(name, false)
+	}
+
+	return &nfa
 }
 
 // AddState добавляет новое состояние в НКА с заданным именем и флагом заключительности
@@ -126,7 +141,10 @@ func (n *NFA) RemoveLetter(letter *Letter) bool {
 
 // AddTransition добавляет переход из заданного исходного состояния в заданное конечное состояние по заданному символу
 // Возвращает true, если переход добавлен успешно, или false, если какой-то из параметров не принадлежит НКА
-func (n *NFA) AddTransition(from, to *State, by *Letter) bool {
+func (n *NFA) SetTransition(fromName, toName, letterBy string) bool {
+	by := n.FindLetterByName(letterBy)
+	from := n.FindStateByName(fromName)
+	to := n.FindStateByName(toName)
 	if _, ok := n.states[from]; !ok {
 		return false // исходное состояние не принадлежит НКА
 	}
@@ -138,6 +156,27 @@ func (n *NFA) AddTransition(from, to *State, by *Letter) bool {
 	}
 	n.trans[from][by] = append(n.trans[from][by], to)
 	return true
+}
+
+// FindLetterByName возвращает ссылку на букву алфавита по её имени
+func (n *NFA) FindLetterByName(name string) *Letter {
+	for letter := range n.letters {
+		if letter.name == name {
+			return letter
+		}
+	}
+	return nil
+}
+
+// FindStateByName возвращает ссылку на состояние по имени.
+// Возвращает nil если состояние не принадлежит ДКА и ссылку на состояние если принадлежит
+func (n *NFA) FindStateByName(name string) *State {
+	for state := range n.states {
+		if state.name == name {
+			return state
+		}
+	}
+	return nil
 }
 
 // RemoveTransition удаляет переход из заданного исходного состояния в заданное конечное состояние по заданному символу
@@ -152,19 +191,14 @@ func (n *NFA) RemoveTransition(from, to *State, by *Letter) bool {
 	if _, ok := n.letters[by]; !ok {
 		return false // символ не принадлежит алфавиту НКА
 	}
-	for i := 0; i < len(n.trans[from][by]); i++ {
-		if n.trans[from][by][i] == to {
-			n.trans[from][by] = append(n.trans[from][by][:i], n.trans[from][by][i+1:]...) // удалить переход
-			i--
-			return true
-		}
-	}
-	return false // перехода не существует
+	delete(n.trans[from], by) // удалить переход
+	return false
 }
 
 // SetStartState устанавливает начальное состояние НКА
 // Возвращает true, если состояние установлено успешно, или false, если заданное состояние не принадлежит НКА
-func (n *NFA) SetStartState(state *State) bool {
+func (n *NFA) SetStartState(name string) bool {
+	state := n.FindStateByName(name)
 	if _, ok := n.states[state]; !ok {
 		return false
 	}
@@ -173,9 +207,29 @@ func (n *NFA) SetStartState(state *State) bool {
 	return true
 }
 
+// SetEndState устанавливает состояние как конечное
+func (n *NFA) SetEndState(name string) bool {
+	s := n.FindStateByName(name)
+	if s == nil {
+		return false
+	}
+	s.term = true
+	return true
+}
+
 // GetStartState возвращает начальное состояние НКА или nil, если оно не установлено
 func (n *NFA) GetStartState() *State {
 	return n.start
+}
+
+// IsEndState возвращает true если текущее состояние автомата заключительное
+func (n *NFA) IsEndState() bool {
+	for _, state := range n.current {
+		if state.IsTerminal() {
+			return true
+		}
+	}
+	return false
 }
 
 // GetCurrentStates возвращает текущее множество состояний НКА или nil, если оно не установлено
@@ -211,31 +265,19 @@ func (n *NFA) Transition(by *Letter) []*State {
 	return n.current
 }
 
-// Recognize запускает НКА по входной цепочке символов алфавита НКА и возвращает true, если цепочка принадлежит языку НКА, или false, если нет
-func (n *NFA) Recognize(input string) bool {
+// Accepts проверяет строку на принадлежность языку ДКА
+// Возвращает true, если строка принадлежит языку ДКА, или false, если нет
+func (n *NFA) Accepts(s string) bool {
 	n.ResetCurrentStates()
-	for _, c := range input {
-		n.Transition(NewLetter(string(c)))
-	}
-	for _, s := range n.current {
-		if s.IsTerminal() {
-			return true
+	for _, r := range s {
+		var l *Letter
+		l = n.FindLetterByName(string(r))
+		if l == nil {
+			return false
+		}
+		if n.Transition(l) == nil {
+			return false
 		}
 	}
-	return false
-}
-
-// RecognizeArray для массива Letter
-func (n *NFA) RecognizeArray(input []*Letter) bool {
-
-	n.ResetCurrentStates()
-	for _, c := range input {
-		n.Transition(c)
-	}
-	for _, s := range n.current {
-		if s.IsTerminal() {
-			return true
-		}
-	}
-	return false
+	return n.IsEndState()
 }

@@ -133,25 +133,6 @@ func (d *DFA) RemoveLetter(letter *Letter) bool {
 	return true
 }
 
-// SetTransition устанавливает переход из заданного исходного состояния в заданное конечное состояние по заданному символу
-// Возвращает true, если переход установлен успешно, или false, если какой-то из параметров не принадлежит ДКА
-func (d *DFA) SetTransition(fromName, toName, letterBy string) bool {
-	by := d.FindLetterByName(letterBy)
-	from := d.FindStateByName(fromName)
-	to := d.FindStateByName(toName)
-	if _, ok := d.states[from]; !ok {
-		return false // исходное состояние не принадлежит ДКА
-	}
-	if _, ok := d.states[to]; !ok {
-		return false // конечное состояние не принадлежит ДКА
-	}
-	if _, ok := d.letters[by]; !ok {
-		return false // символ не принадлежит алфавиту ДКА
-	}
-	d.trans[from][by] = to // установить переход
-	return true
-}
-
 // FindLetterByName возвращает ссылку на букву алфавита по её имени
 func (d *DFA) FindLetterByName(name string) *Letter {
 	for letter := range d.letters {
@@ -171,22 +152,6 @@ func (d *DFA) FindStateByName(name string) *State {
 		}
 	}
 	return nil
-}
-
-// RemoveTransition удаляет переход из заданного исходного состояния по заданному символу
-// Возвращает true, если переход удален успешно, или false, если какой-то из параметров не принадлежит ДКА или перехода не существует
-func (d *DFA) RemoveTransition(from *State, by *Letter) bool {
-	if _, ok := d.states[from]; !ok {
-		return false // исходное состояние не принадлежит ДКА
-	}
-	if _, ok := d.letters[by]; !ok {
-		return false // символ не принадлежит алфавиту ДКА
-	}
-	if _, ok := d.trans[from][by]; !ok {
-		return false // перехода не существует
-	}
-	delete(d.trans[from], by) // удалить переход
-	return true
 }
 
 // SetStartState устанавливает начальное состояние ДКА
@@ -229,6 +194,41 @@ func (d *DFA) GetCurrentState() *State {
 // ResetCurrentState сбрасывает текущее состояние ДКА в начальное состояние или nil, если оно не установлено
 func (d *DFA) ResetCurrentState() {
 	d.current = d.start
+}
+
+// SetTransition устанавливает переход из заданного исходного состояния в заданное конечное состояние по заданному символу
+// Возвращает true, если переход установлен успешно, или false, если какой-то из параметров не принадлежит ДКА
+func (d *DFA) SetTransition(fromName, toName, letterBy string) bool {
+	by := d.FindLetterByName(letterBy)
+	from := d.FindStateByName(fromName)
+	to := d.FindStateByName(toName)
+	if _, ok := d.states[from]; !ok {
+		return false // исходное состояние не принадлежит ДКА
+	}
+	if _, ok := d.states[to]; !ok {
+		return false // конечное состояние не принадлежит ДКА
+	}
+	if _, ok := d.letters[by]; !ok {
+		return false // символ не принадлежит алфавиту ДКА
+	}
+	d.trans[from][by] = to // установить переход
+	return true
+}
+
+// RemoveTransition удаляет переход из заданного исходного состояния по заданному символу
+// Возвращает true, если переход удален успешно, или false, если какой-то из параметров не принадлежит ДКА или перехода не существует
+func (d *DFA) RemoveTransition(from *State, by *Letter) bool {
+	if _, ok := d.states[from]; !ok {
+		return false // исходное состояние не принадлежит ДКА
+	}
+	if _, ok := d.letters[by]; !ok {
+		return false // символ не принадлежит алфавиту ДКА
+	}
+	if _, ok := d.trans[from][by]; !ok {
+		return false // перехода не существует
+	}
+	delete(d.trans[from], by) // удалить переход
+	return true
 }
 
 // Transition выполняет переход из текущего состояния в другое по заданному символу и возвращает новое текущее состояние

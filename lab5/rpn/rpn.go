@@ -1,3 +1,4 @@
+// Package rpn - для преобразования в польскую обратную форму
 package rpn
 
 import (

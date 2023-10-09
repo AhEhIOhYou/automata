@@ -1,3 +1,4 @@
+// Package etree - для составления бинарного дерева выражения из ОПФ
 package etree
 
 import (

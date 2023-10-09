@@ -7,7 +7,7 @@ import (
 )
 
 func TestSolve(t *testing.T) {
-	expression := "x * ( y + z - y1 ) + w * x2 / w3"
+	expression := "2 + x * ( y + z - y1 ) + w * x2 / w3 - 2"
 
 	env := map[string]float64{
 		"x":  3,

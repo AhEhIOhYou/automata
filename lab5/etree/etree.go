@@ -2,14 +2,16 @@
 package etree
 
 import (
+	"strconv"
 	"strings"
 )
 
 type TokenType int
 
 const (
-	Variable TokenType = iota
-	Operator
+	Operator TokenType = iota
+	Variable
+	Number
 )
 
 type Token struct {
@@ -45,6 +47,9 @@ func CreateTreeFromRPN(expression string) *Node {
 			stack = append(stack, &Node{Token: t, Left: left, Right: right})
 		} else {
 			t.Type = Variable
+			if _, err := strconv.ParseFloat(t.Value, 64); err == nil {
+				t.Type = Number
+			}
 			stack = append(stack, NewNode(t))
 		}
 	}
